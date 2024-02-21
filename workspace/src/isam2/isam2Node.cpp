@@ -205,8 +205,36 @@ class SLAMValidation : public rclcpp::Node
       // time_ns = tempTime;  
       run_slam();
     }
+
+    bool almost_equal(Pose2 a, Pose2 b) {
+      double threshold = 0.05;
+      return std::fabs(a.x() - b.x()) < threshold && std::fabs(a.y() - b.y()) < threshold;
+    }
+
+    vector<Pose2> xTruth;
  
+    void append_cones() {
+      bool new_cone = true;
+      for(Point2 cone: cones) {
+        new_cone = true;
+        double range = std::sqrt(cone.x() * cone.x() + cone.y() * cone.y());
+        double bearing = std:atan2(cone.y(), cone.x())
+
+        double global_cone_x = global_odom.x() + range * cos(bearing+global_odom.theta());
+        double global_cone_y = global_odom.y() + range * sin(bearing+global_odom.theta());
+        Pose2 global_coords(global_cone_x, global_cone_y, 0);
+        for(Pose2 other_cones: xTruth) {
+          if(almost_equal(global_coords, other_cones)) {
+            new_cone = false;
+          }
+        }
+        if(new_cone)
+          xTruth.push_back(global_coords);
+      }
+    }
+
     void run_slam(){
+
         slam_instance.step(this->get_logger(), global_odom, cones,orangeCones, velocity, dt, loopClosure);
         // RCLCPP_INFO(this->get_logger(), "NUM_LANDMARKS: %i\n", (slam_instance.n_landmarks));
     }
