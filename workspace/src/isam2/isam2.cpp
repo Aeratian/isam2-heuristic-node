@@ -159,7 +159,7 @@ public:
         return min_id;
     }
 
-    void step(auto logger, gtsam::Pose2 global_odom, std::vector<Point2> &cone_obs, std::vector<Point2> &orange_ref_cones, gtsam::Point2 velocity,long time_ns, bool loopClosure) {
+    void step(auto logger, gtsam::Pose2 global_odom, std::vector<Point2> &cone_obs, std::vector<Point2> &orange_ref_cones, gtsam::Point2 velocity,long time_ns, bool loopClosure, vector<tuple<Point2, bool>> annot_obs_cones) {
         Vector NoiseModel(3);
         NoiseModel(0) = 0;
         NoiseModel(1) = 0;
@@ -257,6 +257,14 @@ public:
             //TODO: instead of iterating through all of the landmarks, see if there is a way to do this with a single operation
             //This is jvc lmao
             int associated_ID = associate(logger, global_cone);
+            
+//Heuristic starts here
+//1.) for the cone id of the observation, check if decision matches truth
+//- the decision is associate_id: does assoc_id match with the cone_id we have in obs
+//- for now since we don't know the index, let's check just whether new cone or no
+//2.) if decision does not match, then add to error
+            heuristicFunction(associate_ID, annot_obs_cones);
+
             //std::cout << "Associated ID:\n"  << associated_ID << std::endl;
 
             static auto landmark_model = noiseModel::Diagonal::Sigmas(LandmarkNoiseModel);

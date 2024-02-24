@@ -212,10 +212,11 @@ class SLAMValidation : public rclcpp::Node
     }
 
     vector<Pose2> xTruth;
- 
-    void append_cones() {
+    //Store the Point2 for debugging
+    vector<tuple<Point2, bool>> append_cones() {
       bool new_cone = true;
-      for(Point2 cone: cones) {
+      vector<tuple<Point2, bool>> obs_cones;
+      for(Point2 cone: cones) { //cones holds current observations
         new_cone = true;
         double range = std::sqrt(cone.x() * cone.x() + cone.y() * cone.y());
         double bearing = std:atan2(cone.y(), cone.x())
@@ -228,9 +229,13 @@ class SLAMValidation : public rclcpp::Node
             new_cone = false;
           }
         }
-        if(new_cone)
+        if(new_cone) {
           xTruth.push_back(global_coords);
+        }
+
+        obs_cones.push_back(tuple<Point2, bool> tp(global_coords, new_cone));
       }
+      return obs_new_cones;
     }
 
     void run_slam(){
