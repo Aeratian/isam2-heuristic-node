@@ -213,8 +213,10 @@ class SLAMValidation : public rclcpp::Node
 
     vector<Pose2> xTruth;
  
-    void append_cones() {
+    vector<int>append_cones() {
+      vector<int> annot_obs_cones;
       bool new_cone = true;
+      int cone_id = -1;
       for(Point2 cone: cones) {
         new_cone = true;
         double range = std::sqrt(cone.x() * cone.x() + cone.y() * cone.y());
@@ -222,20 +224,28 @@ class SLAMValidation : public rclcpp::Node
 
         double global_cone_x = global_odom.x() + range * cos(bearing+global_odom.theta());
         double global_cone_y = global_odom.y() + range * sin(bearing+global_odom.theta());
-        Pose2 global_coords(global_cone_x, global_cone_y, 0);
-        for(Pose2 other_cones: xTruth) {
+        Pose2 global_coords(global_cone_x, global_cone_y, xTruth);
+        for(int i = 0; i < xTruth.size(); i++) {
+          Pose2 other_cones = xTruth[i];
           if(almost_equal(global_coords, other_cones)) {
-            new_cone = false;
+            new_cones = false;
+            cone_id = i;
+            break;
           }
         }
-        if(new_cone)
+        if(new_cone) {
+          cone_id = xTruth.size();
           xTruth.push_back(global_coords);
+        }
+        annot_obs_cones.push_back(tuple<int> tp(cone_id));
+        
       }
+      return annot_obs_cones;
     }
 
     void run_slam(){
-
-        slam_instance.step(this->get_logger(), global_odom, cones,orangeCones, velocity, dt, loopClosure);
+        vector<int> annot_obs_cones = append_cones();
+        slam_instance.step,(this->get_logger(), global_odom, cones,orangeCones, velocity, dt, loopClosure, annot_obs_cones);
         // RCLCPP_INFO(this->get_logger(), "NUM_LANDMARKS: %i\n", (slam_instance.n_landmarks));
     }
     // ISAM2Params parameters;
