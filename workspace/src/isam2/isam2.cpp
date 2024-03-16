@@ -37,7 +37,7 @@ using namespace gtsam;
 
 static const float M_DIST_TH = 15;
 static const long SEC_TO_NANOSEC = 1000000000;
-
+static int data_association_errors = 0;
 // static const float DT = 0.1;
 // static const float SIM_TIME = 50.0;
 // static const int LM_SIZE = 2;
@@ -133,6 +133,8 @@ public:
         return result(0);
     }
 
+
+
     int associate(auto logger, Pose2 measurement) {
         // Vector that will store mahalanobis distances
         RCLCPP_INFO(logger, "in associate\n");
@@ -156,10 +158,29 @@ public:
         // Find the index of the minimum element in 'min_dist'
         //min_id will be equal to num_landmarks if it didn't find anything under M_DIST_TH
         int min_id = std::distance(min_dist.begin(), std::min_element(min_dist.begin(), min_dist.end()));
+
+
         return min_id;
     }
 
-    void step(auto logger, gtsam::Pose2 global_odom, std::vector<Point2> &cone_obs, std::vector<Point2> &orange_ref_cones, gtsam::Point2 velocity,long time_ns, bool loopClosure, vector<tuple<Point2, bool>> annot_obs_cones) {
+    int heuristicFunction(int associated_ID, int obs_idx, std::vector<int> annot_obs_cones) {
+        bool assoc_in_annot = false;
+        
+        if (associated_ID == annot_obs_cones[obs_idx]) { //correct cone_id prediction
+            return 0;
+        }
+        
+
+        
+        return 1;
+    }
+
+
+
+    void step(auto logger, Pose2 global_odom, std::vector<Point2> &cone_obs, std::vector<Point2> &orange_ref_cones, gtsam::Point2 velocity,long time_ns, bool loopClosure, std::vector<int> annot_obs_cones) {
+        
+
+
         Vector NoiseModel(3);
         NoiseModel(0) = 0;
         NoiseModel(1) = 0;
@@ -242,7 +263,8 @@ public:
         // std::cout << "global_odom: "  << global_odom << std::endl;
         
         // DATA ASSOCIATION BEGIN
-        for (Point2 cone : cone_obs) { // go through each observed cone
+        for (long unsigned int i = 0; i < cone_obs.size(); i++) { // go through each observed cone
+            Point2 cone = cone_obs[i];
             //cones are with respect to the car
             // std::cout << "cone: "  << cone << std::endl;
             Pose2 conePose(cone.x(),cone.y(),0);
@@ -257,13 +279,7 @@ public:
             //TODO: instead of iterating through all of the landmarks, see if there is a way to do this with a single operation
             //This is jvc lmao
             int associated_ID = associate(logger, global_cone);
-            
-//Heuristic starts here
-//1.) for the cone id of the observation, check if decision matches truth
-//- the decision is associate_id: does assoc_id match with the cone_id we have in obs
-//- for now since we don't know the index, let's check just whether new cone or no
-//2.) if decision does not match, then add to error
-            heuristicFunction(associate_ID, annot_obs_cones);
+            data_association_errors += heuristicFunction(associated_ID, i, annot_obs_cones);
 
             //std::cout << "Associated ID:\n"  << associated_ID << std::endl;
 

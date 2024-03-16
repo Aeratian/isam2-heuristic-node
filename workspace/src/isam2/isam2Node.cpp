@@ -1,14 +1,14 @@
 #include <memory>
 
-#include "rclcpp/rclcpp.hpp"
+#include <rclcpp/rclcpp.hpp>
 
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
 // #include "eufs_msgs/msg/cone_array_with_covariance.hpp"
-#include "eufs_msgs/msg/cone_array.hpp"
-#include "eufs_msgs/msg/car_state.hpp"
+#include <eufs_msgs/msg/cone_array.hpp>
+#include <eufs_msgs/msg/car_state.hpp>
 
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/vector3_stamped.hpp"
@@ -80,8 +80,8 @@ class SLAMValidation : public rclcpp::Node
       orangeNotSeenFlag = false;
       loopClosure = false;
 
+      init_odom = gtsam::Pose2(-1, -1, -1);
 
-      init_odom = gtsam::Pose2(-1,-1,-1);
     }
   private:
     // void cone_callback(const eufs_msgs::msg::ConeArrayWithCovariance::SharedPtr cone_data){
@@ -211,36 +211,45 @@ class SLAMValidation : public rclcpp::Node
       return std::fabs(a.x() - b.x()) < threshold && std::fabs(a.y() - b.y()) < threshold;
     }
 
-    vector<Pose2> xTruth;
-    //Store the Point2 for debugging
-    vector<tuple<Point2, bool>> append_cones() {
+    std::vector<Pose2> xTruth;
+    //building xTruth
+    std::vector<int>append_cones() {
+      std::vector<int> annot_obs_cones;
       bool new_cone = true;
-      vector<tuple<Point2, bool>> obs_cones;
-      for(Point2 cone: cones) { //cones holds current observations
+      int cone_id = -1;
+      for(Point2 cone: cones) {
         new_cone = true;
         double range = std::sqrt(cone.x() * cone.x() + cone.y() * cone.y());
-        double bearing = std:atan2(cone.y(), cone.x())
+        double bearing = std::atan2(cone.y(), cone.x());
 
         double global_cone_x = global_odom.x() + range * cos(bearing+global_odom.theta());
         double global_cone_y = global_odom.y() + range * sin(bearing+global_odom.theta());
-        Pose2 global_coords(global_cone_x, global_cone_y, 0);
-        for(Pose2 other_cones: xTruth) {
+        
+        Pose2 global_coords(global_cone_x, global_cone_y, -1);
+        for(long unsigned int i = 0; i < xTruth.size(); i++) {
+          Pose2 other_cones = xTruth[i];
           if(almost_equal(global_coords, other_cones)) {
             new_cone = false;
+            cone_id = i;
+            break;
           }
         }
+
+
         if(new_cone) {
+          global_coords = gtsam::Pose2(global_cone_x, global_cone_y, xTruth.size());
           xTruth.push_back(global_coords);
         }
-
-        obs_cones.push_back(tuple<Point2, bool> tp(global_coords, new_cone));
+        //std::tuple<int> tp(cone_id);
+        annot_obs_cones.push_back(cone_id);
+        
       }
-      return obs_new_cones;
+      return annot_obs_cones;
     }
 
     void run_slam(){
-
-        slam_instance.step(this->get_logger(), global_odom, cones,orangeCones, velocity, dt, loopClosure);
+        vector<int> annot_obs_cones = append_cones();
+        slam_instance.step(this->get_logger(), global_odom, cones,orangeCones, velocity, dt, loopClosure, annot_obs_cones);
         // RCLCPP_INFO(this->get_logger(), "NUM_LANDMARKS: %i\n", (slam_instance.n_landmarks));
     }
     // ISAM2Params parameters;
