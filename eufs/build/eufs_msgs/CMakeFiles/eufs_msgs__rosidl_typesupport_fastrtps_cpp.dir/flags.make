@@ -6,5 +6,5 @@ CXX_FLAGS = -fPIC   -Wall -Wextra -Wpedantic -Wall -Wextra -Wpedantic -std=gnu++
 
 CXX_DEFINES = -DFOONATHAN_MEMORY=1 -DFOONATHAN_MEMORY_VERSION_MAJOR=0 -DFOONATHAN_MEMORY_VERSION_MINOR=7 -DFOONATHAN_MEMORY_VERSION_PATCH=1 -DRCUTILS_ENABLE_FAULT_INJECTION -DROS_PACKAGE_NAME=\"eufs_msgs\" -Deufs_msgs__rosidl_typesupport_fastrtps_cpp_EXPORTS
 
-CXX_INCLUDES = -I/home/andrewwhong/classes/16833/iSAM2_SLAM/eufs/build/eufs_msgs/rosidl_generator_cpp -I/home/andrewwhong/classes/16833/iSAM2_SLAM/eufs/build/eufs_msgs/rosidl_typesupport_fastrtps_cpp -isystem /opt/ros/foxy/include -isystem /opt/ros/foxy/include/foonathan_memory 
+CXX_INCLUDES = -I/home/danielnguyen/cmr/isam2-heuristic-node/eufs/build/eufs_msgs/rosidl_generator_cpp -I/home/danielnguyen/cmr/isam2-heuristic-node/eufs/build/eufs_msgs/rosidl_typesupport_fastrtps_cpp -isystem /opt/ros/foxy/include -isystem /opt/ros/foxy/include/foonathan_memory 
 
